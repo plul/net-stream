@@ -1,0 +1,5 @@
+[toolchain]
+# List nightly features still in use with `just list-nightly-features`.
+channel = "nightly-2023-02-18"
+profile = "minimal"
+components = ["rust-src", "clippy", "rust-analyzer", "rustfmt"]

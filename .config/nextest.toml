@@ -1,0 +1,15 @@
+[test-groups]
+[test-groups.sequential]
+max-threads = 1
+
+[profile.default]
+slow-timeout = { period = "1s", terminate-after = 2 }
+status-level = "skip"
+fail-fast = true
+retries = 0
+failure-output = "immediate"
+
+[[profile.default.overrides]]
+# NetStream integration tests re-use the same socket ports, so run test sequentially
+filter = 'package(net_stream) + binary(integration-tests)'
+test-group = 'sequential'
