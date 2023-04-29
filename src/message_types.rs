@@ -6,7 +6,7 @@ use serde::Serialize;
 use std::fmt;
 use uuid::Uuid;
 
-/// Message types between server and peers over TCP and UDP transports.
+/// Message types for the server and client communication.
 ///
 /// This is a trait with no methods, used only to define strong types for TCP/UDP
 /// serialization and deserialization.
