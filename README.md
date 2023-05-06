@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Logo" width="20%">
+</p>
+
 # NetStream - Typed streams for Rust client/server TCP and UDP networking
 
 NetStream is a Rust library that provides networking abstractions for typed TCP and UDP streams. It simplifies the process of writing server and client implementations that can send and receive data over a network in a type-safe way.

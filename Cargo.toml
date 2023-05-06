@@ -1,7 +1,7 @@
 cargo-features = ["public-dependency"]
 
 [package]
-name = "net_stream"
+name = "net-stream"
 version = "0.1.0"
 authors = ["Asger Juul Brunshøj <asgerbrunshoj@gmail.com>"]
 description = "Typed streams for Rust client/server TCP and UDP networking"

@@ -10,6 +10,6 @@ retries = 0
 failure-output = "immediate"
 
 [[profile.default.overrides]]
-# NetStream integration tests re-use the same socket ports, so run test sequentially
-filter = 'package(net_stream) + binary(integration-tests)'
+# Integration tests re-use the same socket ports, so run tests sequentially for now
+filter = 'package(net-stream) + binary(integration-tests)'
 test-group = 'sequential'
