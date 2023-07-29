@@ -6,7 +6,10 @@ version = "0.1.0"
 authors = ["Asger Juul Brunshøj <asgerbrunshoj@gmail.com>"]
 description = "Typed streams for Rust client/server TCP and UDP networking"
 edition = "2021"
-publish = false
+publish = true
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/plul/net-stream"
 
 [dependencies]
 assert_let_bind = "0.1.1"
