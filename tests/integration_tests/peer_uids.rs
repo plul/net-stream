@@ -2,7 +2,6 @@ use futures::StreamExt;
 use net_stream::server::event::Event;
 use net_stream::server::event::NewPeer;
 use net_stream::server::PeerUid;
-use std::assert_matches::assert_matches;
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::time::timeout;
@@ -23,9 +22,8 @@ async fn main() {
     tcp_client.writable().await.unwrap();
 
     let ev = timeout(Duration::from_millis(100), server_rx.next()).await.unwrap().unwrap();
-    assert_matches!(
-        ev,
-        Event::NewPeer(NewPeer { peer_uid: PeerUid(0) }),
+    assert!(
+        matches!(ev, Event::NewPeer(NewPeer { peer_uid: PeerUid(0) }),),
         "First peer should be peer with UID 0"
     );
 
@@ -34,9 +32,8 @@ async fn main() {
     tcp_client.writable().await.unwrap();
 
     let ev = timeout(Duration::from_millis(100), server_rx.next()).await.unwrap().unwrap();
-    assert_matches!(
-        ev,
-        Event::NewPeer(NewPeer { peer_uid: PeerUid(1) }),
+    assert!(
+        matches!(ev, Event::NewPeer(NewPeer { peer_uid: PeerUid(1) })),
         "Second peer should be peer with UID 1"
     );
 }

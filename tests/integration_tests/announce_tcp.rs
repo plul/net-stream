@@ -4,7 +4,6 @@ use futures::StreamExt;
 use net_stream::client;
 use net_stream::server;
 use server::event::Event as ServerEvent;
-use std::assert_matches::assert_matches;
 
 type M = crate::StringMessages;
 
@@ -27,7 +26,7 @@ async fn announce_tcp() {
     let (_client_1_handle, mut client_1_events) = net_stream::client::connect::<M>(server_host).await.unwrap();
     crate::expect_udp_events_can_send_and_receive_udp_messages(&mut client_1_events).await;
     log::info!("OK: Connected client 1");
-    assert_matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_));
+    assert!(matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_)));
 
     server_handle.announce_tcp(String::from("First message!"));
 
@@ -41,7 +40,7 @@ async fn announce_tcp() {
     let (_client_2_handle, mut client_2_events) = net_stream::client::connect::<M>(server_host).await.unwrap();
     crate::expect_udp_events_can_send_and_receive_udp_messages(&mut client_2_events).await;
     log::info!("OK: Connected client 2");
-    assert_matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_));
+    assert!(matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_)));
 
     server_handle.announce_tcp(String::from("Second message!"));
 

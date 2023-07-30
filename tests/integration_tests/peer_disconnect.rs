@@ -2,9 +2,8 @@ use assert_let_bind::assert_let;
 use futures::StreamExt;
 use net_stream::client;
 use net_stream::server;
+use net_stream::server::event;
 use net_stream::server::event::Event;
-use net_stream::server::event::{self};
-use std::assert_matches::assert_matches;
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::time::timeout;
@@ -30,7 +29,7 @@ async fn drop_raw_tcp_stream() {
     let ev = server_rx.next().await.unwrap();
     assert_let!(Event::PeerDisconnect(peer_disconnect), ev);
     assert_eq!(peer_disconnect.peer_uid, peer_uid);
-    assert_matches!(peer_disconnect.disconnect_reason, event::DisconnectReason::PeerClosedConnection);
+    assert!(matches!(peer_disconnect.disconnect_reason, event::DisconnectReason::PeerClosedConnection));
 }
 
 #[tokio::test]
@@ -46,7 +45,7 @@ async fn drop_events_stream() {
         .expect("Server failed startup");
 
     let (mut client_1_handle, client_1_events) = net_stream::client::connect::<crate::StringMessages>(server_host).await.unwrap();
-    assert_matches!(server_rx.next().await.unwrap(), server::event::Event::NewPeer(_));
+    assert!(matches!(server_rx.next().await.unwrap(), server::event::Event::NewPeer(_)));
 
     drop(client_1_events);
 
@@ -63,7 +62,7 @@ async fn drop_events_stream() {
     // to all IO actors. This in turn shuts down the raw TCP stream, telling the
     // server that the client has disconnected:
 
-    assert_matches!(server_rx.next().await.unwrap(), server::event::Event::PeerDisconnect(_));
+    assert!(matches!(server_rx.next().await.unwrap(), server::event::Event::PeerDisconnect(_)));
 
     // Trying to use the handle to forward a message to the client now fails
     let msg = "Hello from dead client";

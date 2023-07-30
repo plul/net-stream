@@ -1,6 +1,5 @@
 use futures::StreamExt;
 use net_stream::server::event::Event as ServerEvent;
-use std::assert_matches::assert_matches;
 
 type M = crate::StringMessages;
 
@@ -22,17 +21,17 @@ async fn udp_heartbeat() {
 
     log::info!("Connecting client ...");
     let (mut client_handle, mut client_events) = net_stream::client::connect::<M>(server_host).await.unwrap();
-    assert_matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_));
+    assert!(matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_)));
     log::info!("Connected client");
 
     log::info!("Expecting no immediate heartbeat...");
     let status = client_handle.get_status().await.unwrap();
-    assert_matches!(status.latest_udp_heartbeat, None);
+    assert!(matches!(status.latest_udp_heartbeat, None));
 
     crate::expect_udp_events_can_send_and_receive_udp_messages(&mut client_events).await;
     tokio::time::sleep(HEARTBEAT_INTERVAL + std::time::Duration::from_millis(10)).await;
 
     log::info!("Expecting to have received heartbeat...");
     let status = client_handle.get_status().await.unwrap();
-    assert_matches!(status.latest_udp_heartbeat, Some(_));
+    assert!(matches!(status.latest_udp_heartbeat, Some(_)));
 }

@@ -9,6 +9,7 @@ use futures::StreamExt;
 use std::fmt::Display;
 use std::future;
 use std::future::Future;
+use std::pin::Pin;
 
 /// Spawn new actor
 pub(crate) fn spawn_actor<T, S, Tx>(stream: S, tx: Tx) -> ReadActorHandle
@@ -20,7 +21,7 @@ where
     let (actor_msg_tx, actor_msg_rx) = mpsc::channel(8);
     let join_handle = tokio::spawn(actor(actor_msg_rx, stream, tx));
 
-    let shutdown_reason = join_handle.map_into::<ActorShutdown<ReadActorShutdownReason>>().shared();
+    let shutdown_reason = join_handle.map_into::<ActorShutdown<ReadActorShutdownReason>>().boxed().shared();
 
     ReadActorHandle::new(actor_msg_tx, shutdown_reason)
 }
@@ -66,7 +67,10 @@ impl Display for ReadActorShutdownReason {
     }
 }
 
-type ShutdownReasonFuture = futures::future::Shared<impl Future<Output = ActorShutdown<ReadActorShutdownReason>>>;
+// TODO: When type_alias_impl_trait is stabilized, this becomes:
+// type ShutdownReasonFuture = futures::future::Shared<impl Future<Output = ActorShutdown<ReadActorShutdownReason>>>;
+// For now, in stable Rust this is the workaround (the Send requirement is there only to help it match the return type of the `.boxed()` method):
+type ShutdownReasonFuture = futures::future::Shared<Pin<Box<dyn Future<Output = ActorShutdown<ReadActorShutdownReason>> + Send>>>;
 
 /// Actor handle.
 #[derive(Debug, Clone)]

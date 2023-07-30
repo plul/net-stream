@@ -41,7 +41,7 @@ enum TcpToServer {
 }
 ```
 
-`TcpFromServer` represents the message type sent from the server to the client (peer) over TCP. 
+`TcpFromServer` represents the message type sent from the server to the client (peer) over TCP.
 In this example, it's an enum to represent different events occurring on a chat server, such as a new user connecting or a new message.
 
 ```rust

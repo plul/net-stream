@@ -6,6 +6,7 @@ use futures::SinkExt;
 use futures::StreamExt;
 use std::fmt::Debug;
 use std::future::Future;
+use std::pin::Pin;
 
 /// Spawn new actor
 pub(crate) fn spawn_actor<S, T>(sink: S) -> WriteActorHandle<T>
@@ -17,7 +18,7 @@ where
     let (actor_msg_tx, actor_msg_rx) = mpsc::channel(32);
     let join_handle = tokio::spawn(actor(actor_msg_rx, sink));
 
-    let shutdown_reason = join_handle.map_into::<ActorShutdown<WriteActorShutdownReason>>().shared();
+    let shutdown_reason = join_handle.map_into::<ActorShutdown<WriteActorShutdownReason>>().boxed().shared();
 
     WriteActorHandle::new(actor_msg_tx, shutdown_reason)
 }
@@ -44,7 +45,10 @@ pub(crate) enum WriteActorShutdownReason {
     ActorHandlesDropped,
 }
 
-type ShutdownReasonFuture = futures::future::Shared<impl Future<Output = ActorShutdown<WriteActorShutdownReason>>>;
+// TODO: When type_alias_impl_trait is stabilized, this becomes:
+// type ShutdownReasonFuture = futures::future::Shared<impl Future<Output = ActorShutdown<WriteActorShutdownReason>>>;
+// For now, in stable Rust this is the workaround (the Send requirement is there only to help it match the return type of the `.boxed()` method):
+type ShutdownReasonFuture = futures::future::Shared<Pin<Box<dyn Future<Output = ActorShutdown<WriteActorShutdownReason>> + Send>>>;
 
 /// Actor handle.
 #[derive(Debug, Clone)]

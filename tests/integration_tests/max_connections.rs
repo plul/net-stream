@@ -1,10 +1,9 @@
 use futures::StreamExt;
+use net_stream::server;
 use net_stream::server::event::DisconnectReason;
 use net_stream::server::event::NewPeer;
 use net_stream::server::event::PeerDisconnect;
 use net_stream::server::PeerUid;
-use net_stream::server::{self};
-use std::assert_matches::assert_matches;
 use std::time::Duration;
 use tokio::time::timeout;
 
@@ -26,19 +25,19 @@ async fn max_connections() {
 
     log::info!("Connecting peer 1...");
     let (client_1_handle, _client_1_events) = net_stream::client::connect::<M>(server_host).await.unwrap();
-    assert_matches!(
+    assert!(matches!(
         server_rx.next().await.unwrap(),
         server::event::Event::NewPeer(NewPeer { peer_uid: PeerUid(0) })
-    );
+    ));
 
     assert_eq!(server_handle.get_number_of_connected_peers().await, 1);
 
     log::info!("Connecting peer 2...");
     let (_client_2_handle, _client_2_events) = net_stream::client::connect::<M>(server_host).await.unwrap();
-    assert_matches!(
+    assert!(matches!(
         server_rx.next().await.unwrap(),
         server::event::Event::NewPeer(NewPeer { peer_uid: PeerUid(1) })
-    );
+    ));
 
     assert_eq!(server_handle.get_number_of_connected_peers().await, 2);
 
@@ -54,20 +53,20 @@ async fn max_connections() {
 
     log::info!("Dropping client 1...");
     drop(client_1_handle);
-    assert_matches!(
+    assert!(matches!(
         server_rx.next().await.unwrap(),
         server::event::Event::PeerDisconnect(PeerDisconnect {
             peer_uid: PeerUid(0),
             disconnect_reason: DisconnectReason::PeerClosedConnection
         })
-    );
+    ));
 
     // Should then accept new peer...
     log::info!("Retrying connecting peer 3...");
     net_stream::client::connect::<M>(server_host).await.unwrap();
-    assert_matches!(
+    assert!(matches!(
         server_rx.next().await.unwrap(),
         server::event::Event::NewPeer(NewPeer { peer_uid: PeerUid(2) })
-    );
+    ));
     assert_eq!(server_handle.get_number_of_connected_peers().await, 2);
 }

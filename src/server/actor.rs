@@ -152,7 +152,7 @@ pub(crate) async fn actor<M>(
                 // New TCP connection
                 let Ok(tcp_stream) = res else {
                     log::info!("Failed TCP connection attempt {res:?}");
-                    continue
+                    continue;
                 };
                 handle_new_tcp_connection(&mut state, tcp_stream);
             }
@@ -408,7 +408,9 @@ fn handle_new_tcp_connection<M: MessageTypes>(state: &mut State<M>, tcp_stream: 
 fn drop_peer<M: MessageTypes>(state: &mut State<M>, peer_uid: PeerUid, reason: event::DisconnectReason) {
     log::info!("Dropping peer: {peer_uid:?}");
 
-    let Some(mut peer) = state.peers.remove(&peer_uid) else { return; };
+    let Some(mut peer) = state.peers.remove(&peer_uid) else {
+        return;
+    };
 
     state.peer_tcp_socket_addr_to_peer_uid.remove(&peer.tcp_socket_addr);
     if let Some(peer_udp_socket_addr) = &peer.udp_socket_addr {
@@ -470,9 +472,9 @@ fn handle_actor_message<M: MessageTypes>(state: &mut State<M>, msg: Message<M>) 
         Message::ToPeerUdp { peer_uid, msg } => match state.peers.get(&peer_uid) {
             Some(peer) => {
                 let Some(peer_udp_socket_addr) = peer.udp_socket_addr else {
-                                log::debug!("Cannot send message to peer {peer_uid:?} on UDP: no peer UDP socket address");
-                                return;
-                            };
+                    log::debug!("Cannot send message to peer {peer_uid:?} on UDP: no peer UDP socket address");
+                    return;
+                };
                 match state.udp_write_actor.send((UdpFromServer::ApplicationLogic(msg), peer_udp_socket_addr)) {
                     Ok(()) => {}
                     Err(err) => {

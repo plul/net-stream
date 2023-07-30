@@ -3,7 +3,6 @@
 
 #![deny(clippy::mod_module_files)]
 #![warn(missing_docs)]
-#![feature(type_alias_impl_trait)]
 
 // Enable when the RFC is implemented, see <https://github.com/rust-lang/rust/issues/44663>
 // #![feature(public_private_dependencies)]

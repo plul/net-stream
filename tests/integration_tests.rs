@@ -1,5 +1,3 @@
-#![feature(assert_matches)]
-
 mod integration_tests {
     mod announce_tcp;
     mod announce_udp;
