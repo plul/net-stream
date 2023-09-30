@@ -26,12 +26,12 @@ async fn udp_heartbeat() {
 
     log::info!("Expecting no immediate heartbeat...");
     let status = client_handle.get_status().await.unwrap();
-    assert!(matches!(status.latest_udp_heartbeat, None));
+    assert!(status.latest_udp_heartbeat.is_none());
 
     crate::expect_udp_events_can_send_and_receive_udp_messages(&mut client_events).await;
     tokio::time::sleep(HEARTBEAT_INTERVAL + std::time::Duration::from_millis(10)).await;
 
     log::info!("Expecting to have received heartbeat...");
     let status = client_handle.get_status().await.unwrap();
-    assert!(matches!(status.latest_udp_heartbeat, Some(_)));
+    assert!(status.latest_udp_heartbeat.is_some());
 }
