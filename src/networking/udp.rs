@@ -45,17 +45,18 @@ where
 
     let stream = stream.map(|r| r.expect("BytesCodec never fails deserialization"));
 
-    // let stream = stream.err_into::<Error>();
-
-    // deserialize with Bincode.
+    // Deserialize with Bincode.
     let deserializing_stream = stream.map(|(buf, socket_addr)| {
         let deserialized: Result<St, Error> = bincode::deserialize(&buf).map_err(Error::from);
         (deserialized, socket_addr)
     });
 
-    // serialize with Bincode.
+    // Serialize with Bincode.
     let serializing_sink = sink.with(|(item, socket_addr): (Sk, SocketAddr)| {
-        let serialized = bincode::serialize(&item).map(|v| (Bytes::from(v), socket_addr)).map_err(Error::from);
+        let serialized = match bincode::serialize(&item) {
+            Ok(v) => Ok((Bytes::from(v), socket_addr)),
+            Err(e) => Err(Error::Bincode(e)),
+        };
         future::ready(serialized)
     });
 

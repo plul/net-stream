@@ -1,8 +1,8 @@
 use assert_let_bind::assert_let;
+use core::time::Duration;
 use futures::StreamExt;
 use net_stream::server::event;
 use net_stream::server::event::Event;
-use std::time::Duration;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::time::timeout;

@@ -1,7 +1,7 @@
 use assert_let_bind::assert_let;
+use core::time::Duration;
 use futures::StreamExt;
 use net_stream::server::event::Event;
-use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::net::UdpSocket;
 use tokio::time::timeout;

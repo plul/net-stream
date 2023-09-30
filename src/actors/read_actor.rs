@@ -1,4 +1,8 @@
 use super::ActorShutdown;
+use crate::stream_ext::StreamExt as _;
+use core::fmt::Display;
+use core::future::Future;
+use core::pin::Pin;
 use futures::channel::mpsc;
 use futures::stream;
 use futures::FutureExt;
@@ -6,10 +10,6 @@ use futures::Sink;
 use futures::SinkExt;
 use futures::Stream;
 use futures::StreamExt;
-use std::fmt::Display;
-use std::future;
-use std::future::Future;
-use std::pin::Pin;
 
 /// Spawn new actor
 pub(crate) fn spawn_actor<T, S, Tx>(stream: S, tx: Tx) -> ReadActorHandle
@@ -131,11 +131,9 @@ where
 {
     let actor_msg_rx = actor_msg_rx
         .map(|x| Received::ActorMessage(x))
-        .chain(stream::once(future::ready(Received::EndOfStream(Kind::ActorMessage))));
+        .chain_ready(Received::EndOfStream(Kind::ActorMessage));
 
-    let stream = stream
-        .map(|x| Received::StreamItem(x))
-        .chain(stream::once(future::ready(Received::EndOfStream(Kind::Stream))));
+    let stream = stream.map(|x| Received::StreamItem(x)).chain_ready(Received::EndOfStream(Kind::Stream));
 
     let mut rx = stream::select(actor_msg_rx, stream);
 

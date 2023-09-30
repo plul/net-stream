@@ -1,10 +1,10 @@
+use core::time::Duration;
 use futures::StreamExt;
 use net_stream::server;
 use net_stream::server::event::DisconnectReason;
 use net_stream::server::event::NewPeer;
 use net_stream::server::event::PeerDisconnect;
 use net_stream::server::PeerUid;
-use std::time::Duration;
 use tokio::time::timeout;
 
 type M = crate::StringMessages;

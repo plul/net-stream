@@ -26,7 +26,7 @@ pub(crate) enum Error {
 /// This takes care of framing the TCP Stream, and serialization/deserialization
 /// of the messages.
 ///
-/// Messages are framed with Tokio's length delimited codec (LV encoding) and
+/// Messages are framed with Tokio util's length delimited codec (LV encoding) and
 /// serialized with bincode, but these are implementation details subject to
 /// change.
 pub(crate) fn new<St, Sk>(tcp_stream: TcpStream) -> (impl Stream<Item = Result<St, Error>>, impl Sink<Sk, Error = Error>)
@@ -42,17 +42,24 @@ where
     let framed_read = FramedRead::new(reader, LengthDelimitedCodec::new());
     let framed_write = FramedWrite::new(writer, LengthDelimitedCodec::new());
 
-    let framed_read = framed_read.err_into::<Error>();
+    let framed_read = framed_read.map_err(Error::Io);
 
-    // deserialize with Bincode.
+    // Deserialize with Bincode.
     let deserialized_read = framed_read.and_then(|bytes_mut| {
-        let deserialized = bincode::deserialize(&bytes_mut).map_err(Error::from);
+        let deserialized = bincode::deserialize(&bytes_mut).map_err(Error::Bincode);
         future::ready(deserialized)
     });
 
-    // serialize with Bincode.
+    // Serialize with Bincode.
     let serialized_write = framed_write.with(|x: Sk| {
-        let serialized = bincode::serialize(&x).map(Into::into).map_err(Error::from);
+        // bincode::serialize returns Vec<u8>.
+        // Map to bytes::Bytes, because LengthDelimitedCodec implements,
+        // the Encoder trait for Bytes, which makes FramedWrite a Sink
+        // of Bytes as well.
+        let serialized = match bincode::serialize(&x) {
+            Ok(v) => Ok(bytes::Bytes::from(v)),
+            Err(e) => Err(Error::Bincode(e)),
+        };
         future::ready(serialized)
     });
 

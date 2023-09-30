@@ -1,8 +1,8 @@
+use core::time::Duration;
 use futures::StreamExt;
 use net_stream::server::event::Event;
 use net_stream::server::event::NewPeer;
 use net_stream::server::PeerUid;
-use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::time::timeout;
 

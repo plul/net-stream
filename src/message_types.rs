@@ -1,9 +1,9 @@
 //! Server/client connection message types.
 
+use core::fmt;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
-use std::fmt;
 use uuid::Uuid;
 
 /// Message types for the server and client communication.

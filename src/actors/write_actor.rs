@@ -1,12 +1,12 @@
 use super::ActorShutdown;
+use core::fmt::Debug;
+use core::future::Future;
+use core::pin::Pin;
 use futures::channel::mpsc;
 use futures::FutureExt;
 use futures::Sink;
 use futures::SinkExt;
 use futures::StreamExt;
-use std::fmt::Debug;
-use std::future::Future;
-use std::pin::Pin;
 
 /// Spawn new actor
 pub(crate) fn spawn_actor<S, T>(sink: S) -> WriteActorHandle<T>

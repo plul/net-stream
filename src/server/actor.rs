@@ -21,6 +21,7 @@ use crate::networking::udp;
 use crate::server::event::DisconnectReason;
 use crate::server::event::NewPeer;
 use crate::stream_ext::StreamExt as _;
+use core::pin::Pin;
 use futures::channel::mpsc;
 use futures::stream;
 use futures::FutureExt as _;
@@ -29,7 +30,6 @@ use futures::Stream;
 use futures::StreamExt as _;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::pin::Pin;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 use tokio::net::UdpSocket;
@@ -93,19 +93,19 @@ pub(crate) async fn actor<M>(
     // Terminate incoming streams with an EndOfStream message containing the reason for actor shutdown
     let msg_receiver = msg_receiver
         .map(|x| Incoming::ActorMessage(x))
-        .chain_once(Incoming::EndOfStream(IncomingKind::ActorMessage));
-    let udp_reader_rx = udp_reader_rx.map(|x| Incoming::UdpReader(x)).chain(stream::once(
+        .chain_ready(Incoming::EndOfStream(IncomingKind::ActorMessage));
+    let udp_reader_rx = udp_reader_rx.map(|x| Incoming::UdpReader(x)).chain_future(
         udp_read_actor
             .wait()
             .map(|shutdown_reason| Incoming::EndOfStream(IncomingKind::UdpReader(shutdown_reason))),
-    ));
+    );
     let udp_writer_rx = udp_write_actor
         .wait()
         .map(|shutdown_reason| Incoming::EndOfStream(IncomingKind::UdpWriter(shutdown_reason)))
         .into_stream();
     let tcp_listener = tokio_stream::wrappers::TcpListenerStream::new(tcp_listener)
         .map(|x| Incoming::TcpListener(x))
-        .chain_once(Incoming::EndOfStream(IncomingKind::TcpListener));
+        .chain_ready(Incoming::EndOfStream(IncomingKind::TcpListener));
 
     let udp_heartbeat = {
         let interval = tokio::time::interval(config.udp_heartbeat_interval);
@@ -361,11 +361,10 @@ fn handle_new_tcp_connection<M: MessageTypes>(state: &mut State<M>, tcp_stream: 
     let tcp_read_actor_handle = crate::actors::read_actor::spawn_actor(stream, reader_tx);
     let tcp_write_actor_handle = crate::actors::write_actor::spawn_actor(sink);
 
-    let tcp_reader_rx = tcp_reader_rx.map(|x| Incoming::TcpReader(x)).chain(
+    let tcp_reader_rx = tcp_reader_rx.map(|x| Incoming::TcpReader(x)).chain_future(
         tcp_read_actor_handle
             .wait()
-            .map(move |shutdown_reason| Incoming::EndOfStream(IncomingKind::TcpReader(peer_uid, shutdown_reason)))
-            .into_stream(),
+            .map(move |shutdown_reason| Incoming::EndOfStream(IncomingKind::TcpReader(peer_uid, shutdown_reason))),
     );
     let tcp_writer_rx = tcp_write_actor_handle
         .wait()
