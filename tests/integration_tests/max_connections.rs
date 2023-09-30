@@ -17,7 +17,10 @@ async fn max_connections() {
     let server_socket_addr = server_host.parse().unwrap();
 
     log::info!("Starting server...");
-    let config = net_stream::server::Config::builder().max_connections(2).build();
+    let config = net_stream::server::Config {
+        max_connections: 2,
+        ..Default::default()
+    };
     let (server_handle, mut server_rx) = net_stream::server::start::<M>(server_socket_addr, server_socket_addr, config)
         .await
         .expect("Server failed startup");

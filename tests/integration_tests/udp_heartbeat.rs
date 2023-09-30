@@ -13,7 +13,10 @@ async fn udp_heartbeat() {
     let server_socket_addr = server_host.parse().unwrap();
 
     log::info!("Starting server...");
-    let config = net_stream::server::Config::builder().udp_heartbeat_interval(HEARTBEAT_INTERVAL).build();
+    let config = net_stream::server::Config {
+        udp_heartbeat_interval: HEARTBEAT_INTERVAL,
+        ..Default::default()
+    };
     let (_server_handle, mut server_rx) = net_stream::server::start::<M>(server_socket_addr, server_socket_addr, config)
         .await
         .expect("Server failed startup");

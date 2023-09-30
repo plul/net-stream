@@ -25,7 +25,6 @@ tokio-stream = { version = "0.1.9", default-features = false, features = [
   "time", # for the IntervalStream wrapper (used for UDP heartbeats)
 ] }
 tokio-util = { version = "0.7", features = ["net", "codec"] }
-typed-builder = "0.15"
 uuid = { version = "1.2.2", features = ["serde", "v4", "fast-rng"] }
 
 [dev-dependencies]

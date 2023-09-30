@@ -10,6 +10,7 @@ use crate::message_types::MessageTypes;
 pub use actor_handle::ActorHandle;
 use futures::channel::mpsc;
 pub use peer_uid::PeerUid;
+use smart_default::SmartDefault;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tokio::net::UdpSocket;
@@ -26,16 +27,23 @@ const DEFAULT_MAX_CONNECTIONS: usize = 2;
 const DEFAULT_UDP_HEARTBEAT_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// Server configuration
-#[derive(Debug, Clone, smart_default::SmartDefault, typed_builder::TypedBuilder)]
+///
+/// # Examples
+/// ```
+/// # use net_stream::server::Config;
+/// let server_config = Config {
+///    max_connections: 100,
+///    ..Default::default()
+/// };
+/// ```
+#[derive(Debug, Clone, SmartDefault)]
 pub struct Config {
     /// Limit number of concurrently connected clients.
     #[default(DEFAULT_MAX_CONNECTIONS)]
-    #[builder(default = DEFAULT_MAX_CONNECTIONS)]
     pub max_connections: usize,
 
     /// Interval between each UDP heartbeat message being emitted to connected peers.
     #[default(DEFAULT_UDP_HEARTBEAT_INTERVAL)]
-    #[builder(default = DEFAULT_UDP_HEARTBEAT_INTERVAL)]
     pub udp_heartbeat_interval: std::time::Duration,
 }
 
