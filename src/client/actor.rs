@@ -29,10 +29,10 @@ pub(crate) enum Message<M>
 where
     M: MessageTypes,
 {
-    ToServerTcp {
+    TcpToServer {
         msg: M::TcpToServer,
     },
-    ToServerUdp {
+    UdpToServer {
         msg: M::UdpToServer,
     },
     GetStatus {
@@ -119,7 +119,7 @@ pub(crate) async fn actor<M>(
             Incoming::ActorMessage(msg) => {
                 log::debug!("Actor msg {msg:?}");
                 match msg {
-                    Message::ToServerTcp { msg } => {
+                    Message::TcpToServer { msg } => {
                         if let Err(err) = tcp_write_actor.send(TcpToServer::ApplicationLogic(msg)) {
                             match err {
                                 write_actor::WriteActorError::ChannelFull => todo!(),
@@ -127,7 +127,7 @@ pub(crate) async fn actor<M>(
                             }
                         }
                     }
-                    Message::ToServerUdp { msg } => {
+                    Message::UdpToServer { msg } => {
                         if let Err(err) = udp_write_actor.send(UdpToServer::ApplicationLogic(msg)) {
                             match err {
                                 write_actor::WriteActorError::ChannelFull => todo!(),

@@ -40,12 +40,12 @@ where
 
     /// Send message to server on TCP.
     pub fn send_message_tcp(&mut self, msg: M::TcpToServer) -> Result<(), Error<M::TcpToServer>> {
-        self.sender.try_send(Message::ToServerTcp { msg }).map_err(|err| {
+        self.sender.try_send(Message::TcpToServer { msg }).map_err(|err| {
             if err.is_full() {
-                assert_let!(Message::ToServerTcp { msg }, err.into_inner());
+                assert_let!(Message::TcpToServer { msg }, err.into_inner());
                 Error::ChannelFull(msg)
             } else if err.is_disconnected() {
-                assert_let!(Message::ToServerTcp { msg }, err.into_inner());
+                assert_let!(Message::TcpToServer { msg }, err.into_inner());
                 Error::ActorUnreachable(msg)
             } else {
                 unreachable!()
@@ -55,12 +55,12 @@ where
 
     /// Send message to server on UDP (lossy).
     pub fn send_message_udp(&mut self, msg: M::UdpToServer) -> Result<(), Error<M::UdpToServer>> {
-        self.sender.try_send(Message::ToServerUdp { msg }).map_err(|err| {
+        self.sender.try_send(Message::UdpToServer { msg }).map_err(|err| {
             if err.is_full() {
-                assert_let!(Message::ToServerUdp { msg }, err.into_inner());
+                assert_let!(Message::UdpToServer { msg }, err.into_inner());
                 Error::ChannelFull(msg)
             } else if err.is_disconnected() {
-                assert_let!(Message::ToServerUdp { msg }, err.into_inner());
+                assert_let!(Message::UdpToServer { msg }, err.into_inner());
                 Error::ActorUnreachable(msg)
             } else {
                 unreachable!()
