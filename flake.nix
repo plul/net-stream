@@ -1,9 +1,8 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-
+    flake-parts.url = "github:hercules-ci/flake-parts";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs @ {flake-parts, ...}:
@@ -26,15 +25,23 @@
         formatter = pkgs.alejandra;
 
         packages = {
-          rust-toolchain-stable = pkgs.rust-bin.stable.latest.minimal.override {
-            extensions = ["rust-src" "clippy" "rust-analyzer"];
+          stable-rust-toolchain = pkgs.rust-bin.stable.latest.minimal.override {
+            extensions = ["rust-src" "clippy"];
           };
 
-          rust-toolchain-nightly-minimal = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.minimal);
+          nightly-rust-toolchain = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
+            toolchain.minimal.override {
+              extensions = ["rust-src" "clippy"];
+            });
 
-          rustfmt-nightly = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
+          nightly-rustfmt = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
             toolchain.minimal.override {
               extensions = ["rustfmt"];
+            });
+
+          nightly-rust-analyzer = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
+            toolchain.minimal.override {
+              extensions = ["rust-analyzer"];
             });
 
           # Warp cargo udeps to use the nightly toolchain
@@ -45,7 +52,7 @@
               mkdir -p $out/bin
               ln -s ${pkgs.cargo-udeps}/bin/cargo-udeps $out/bin/cargo-udeps-unwrapped
               wrapProgram $out/bin/cargo-udeps-unwrapped \
-                --prefix PATH ":" "${config.packages.rust-toolchain-nightly-minimal}/bin"
+                --prefix PATH ":" "${config.packages.nightly-rust-toolchain}/bin"
               mv $out/bin/cargo-udeps-unwrapped $out/bin/cargo-udeps
             '';
           };
@@ -53,8 +60,10 @@
 
         devShells.default = pkgs.mkShell {
           packages = [
-            config.packages.rust-toolchain-stable
-            config.packages.rustfmt-nightly
+            config.packages.stable-rust-toolchain
+            config.packages.nightly-rust-analyzer
+            config.packages.nightly-rustfmt
+            config.packages.cargo-udeps
             config.formatter
             pkgs.taplo
             pkgs.just
@@ -63,7 +72,6 @@
             pkgs.cargo-nextest
             pkgs.cargo-outdated
             pkgs.cargo-audit
-            config.packages.cargo-udeps
             pkgs.nodePackages.prettier
           ];
         };

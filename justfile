@@ -35,7 +35,3 @@ show-test-groups:
 # Run cargo check on changes
 watch-check:
     watchexec --clear --restart --exts='rs,toml' -- cargo check --tests --examples
-
-# List nightly features in use
-list-nightly-features:
-    rg '^#!\[feature(.*)\]'
