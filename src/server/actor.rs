@@ -20,7 +20,6 @@ use crate::networking::tcp;
 use crate::networking::udp;
 use crate::server::event::DisconnectReason;
 use crate::server::event::NewPeer;
-use crate::stream_ext::StreamExt as _;
 use core::pin::Pin;
 use futures::channel::mpsc;
 use futures::stream;
@@ -33,6 +32,7 @@ use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 use tokio::net::UdpSocket;
+use type_toppings::StreamExt as _;
 use uuid::Uuid;
 
 /// Messages that a server actor handle may send to the server actor task.

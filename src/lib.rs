@@ -18,4 +18,3 @@ mod networking {
     pub(crate) mod tcp;
     pub(crate) mod udp;
 }
-mod stream_ext;

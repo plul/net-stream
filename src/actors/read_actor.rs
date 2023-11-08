@@ -1,5 +1,4 @@
 use super::ActorShutdown;
-use crate::stream_ext::StreamExt as _;
 use core::fmt::Display;
 use core::future::Future;
 use core::pin::Pin;
@@ -10,6 +9,7 @@ use futures::Sink;
 use futures::SinkExt;
 use futures::Stream;
 use futures::StreamExt;
+use type_toppings::StreamExt as _;
 
 /// Spawn new actor
 pub(crate) fn spawn_actor<T, S, Tx>(stream: S, tx: Tx) -> ReadActorHandle

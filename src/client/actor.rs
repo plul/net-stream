@@ -13,7 +13,6 @@ use crate::message_types::UdpFromServer;
 use crate::message_types::UdpToServer;
 use crate::networking::tcp;
 use crate::networking::udp;
-use crate::stream_ext::StreamExt as _;
 use core::pin::Pin;
 use futures::channel::mpsc;
 use futures::stream;
@@ -24,6 +23,7 @@ use futures::StreamExt;
 use std::net::SocketAddr;
 use tokio::net::TcpStream;
 use tokio::net::UdpSocket;
+use type_toppings::StreamExt as _;
 
 #[derive(Debug)]
 pub(crate) enum Message<M>
