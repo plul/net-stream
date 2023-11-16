@@ -13,7 +13,7 @@ impl net_stream_tcp::MessageTypes for M {
 }
 
 #[tokio::test]
-async fn announce() {
+async fn main() {
     env_logger::builder()
         .filter(None, log::LevelFilter::Debug)
         .parse_default_env()
