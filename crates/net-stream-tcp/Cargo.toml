@@ -1,0 +1,29 @@
+[package]
+name = "net-stream-tcp"
+version.workspace = true
+authors.workspace = true
+description = "TODO"
+edition.workspace = true
+publish = true
+readme = "README.md"
+license.workspace = true
+repository.workspace = true
+
+[dependencies.net-stream]
+workspace = true
+
+[dependencies]
+assert_let_bind.workspace = true
+bincode.workspace = true
+bytes.workspace = true
+derive_more.workspace = true
+futures.workspace = true
+log.workspace = true
+serde.workspace = true
+smart-default.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tokio-util.workspace = true
+type-toppings.workspace = true
+uuid.workspace = true

@@ -4,14 +4,14 @@ use super::event;
 use super::event::Event;
 use super::peer_uid::PeerUid;
 use super::MessageTypes;
-use crate::actors::read_actor;
-use crate::actors::read_actor::ReadActorHandle;
-use crate::actors::read_actor::ReadActorShutdownReason;
-use crate::actors::write_actor;
-use crate::actors::write_actor::WriteActorHandle;
-use crate::actors::write_actor::WriteActorShutdownReason;
-use crate::actors::ActorShutdown;
-use crate::actors::ErraticActorShutdown;
+use crate::io_actors::read_actor;
+use crate::io_actors::read_actor::ReadActorHandle;
+use crate::io_actors::read_actor::ReadActorShutdownReason;
+use crate::io_actors::write_actor;
+use crate::io_actors::write_actor::WriteActorHandle;
+use crate::io_actors::write_actor::WriteActorShutdownReason;
+use crate::io_actors::ActorShutdown;
+use crate::io_actors::ErraticActorShutdown;
 use crate::message_types::TcpFromServer;
 use crate::message_types::TcpToServer;
 use crate::message_types::UdpFromServer;
@@ -87,8 +87,8 @@ pub(crate) async fn actor<M>(
     // Prepare UDP
     let (udp_socket_stream, udp_socket_sink) = crate::networking::udp::new::<UdpToServer<M>, UdpFromServer<M>>(udp_socket);
 
-    let udp_read_actor = crate::actors::read_actor::spawn_actor(udp_socket_stream, udp_reader_tx);
-    let udp_write_actor = crate::actors::write_actor::spawn_actor(udp_socket_sink);
+    let udp_read_actor = crate::io_actors::read_actor::spawn_actor(udp_socket_stream, udp_reader_tx);
+    let udp_write_actor = crate::io_actors::write_actor::spawn_actor(udp_socket_sink);
 
     // Terminate incoming streams with an EndOfStream message containing the reason for actor shutdown
     let msg_receiver = msg_receiver
@@ -358,8 +358,8 @@ fn handle_new_tcp_connection<M: MessageTypes>(state: &mut State<M>, tcp_stream: 
     let (tcp_reader_tx, tcp_reader_rx) =
         futures::channel::mpsc::channel::<(read_actor::ReadActorEvent<Result<TcpToServer<M>, tcp::Error>>, PeerUid)>(64);
     let reader_tx = tcp_reader_tx.with(move |x| futures::future::ok::<_, futures::channel::mpsc::SendError>((x, peer_uid)));
-    let tcp_read_actor_handle = crate::actors::read_actor::spawn_actor(stream, reader_tx);
-    let tcp_write_actor_handle = crate::actors::write_actor::spawn_actor(sink);
+    let tcp_read_actor_handle = crate::io_actors::read_actor::spawn_actor(stream, reader_tx);
+    let tcp_write_actor_handle = crate::io_actors::write_actor::spawn_actor(sink);
 
     let tcp_reader_rx = tcp_reader_rx.map(|x| Incoming::TcpReader(x)).chain_future(
         tcp_read_actor_handle

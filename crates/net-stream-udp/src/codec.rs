@@ -13,13 +13,13 @@ use tokio::net::UdpSocket;
 use tokio_util::codec::BytesCodec;
 use tokio_util::udp::UdpFramed;
 
-#[derive(::thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub(crate) enum Error {
-    #[error(transparent)]
-    Io(#[from] ::std::io::Error),
+    #[error("std io error")]
+    Io(#[from] std::io::Error),
 
-    #[error(transparent)]
-    Bincode(#[from] ::bincode::Error),
+    #[error("bincode error")]
+    Bincode(#[from] bincode::Error),
 }
 
 /// UDP transport.
@@ -45,15 +45,15 @@ where
 
     let stream = stream.map(|r| r.expect("BytesCodec never fails deserialization"));
 
-    // Deserialize with Bincode.
+    // Deserialize
     let deserializing_stream = stream.map(|(buf, socket_addr)| {
-        let deserialized: Result<St, Error> = bincode::deserialize(&buf).map_err(Error::from);
+        let deserialized: Result<St, Error> = net_stream::deserialize(&buf).map_err(Error::from);
         (deserialized, socket_addr)
     });
 
-    // Serialize with Bincode.
+    // Serialize
     let serializing_sink = sink.with(|(item, socket_addr): (Sk, SocketAddr)| {
-        let serialized = match bincode::serialize(&item) {
+        let serialized = match net_stream::serialize(&item) {
             Ok(v) => Ok((Bytes::from(v), socket_addr)),
             Err(e) => Err(Error::Bincode(e)),
         };

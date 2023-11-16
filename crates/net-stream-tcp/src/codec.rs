@@ -1,6 +1,5 @@
 //! TCP stream codec.
 
-use futures::future;
 use futures::Sink;
 use futures::SinkExt;
 use futures::Stream;
@@ -14,11 +13,11 @@ use tokio_util::codec::LengthDelimitedCodec;
 
 #[derive(::thiserror::Error, Debug)]
 pub(crate) enum Error {
-    #[error(transparent)]
-    Io(#[from] ::std::io::Error),
+    #[error("std io error")]
+    Io(#[from] std::io::Error),
 
-    #[error(transparent)]
-    Bincode(#[from] ::bincode::Error),
+    #[error("bincode error")]
+    Bincode(#[from] bincode::Error),
 }
 
 /// Transform a TCP Stream into a stream and a sink of Rust types.
@@ -44,23 +43,23 @@ where
 
     let framed_read = framed_read.map_err(Error::Io);
 
-    // Deserialize with Bincode.
+    // Deserialize
     let deserialized_read = framed_read.and_then(|bytes_mut| {
-        let deserialized = bincode::deserialize(&bytes_mut).map_err(Error::Bincode);
-        future::ready(deserialized)
+        let deserialized = net_stream::deserialize(&bytes_mut).map_err(Error::Bincode);
+        std::future::ready(deserialized)
     });
 
-    // Serialize with Bincode.
+    // Serialize
     let serialized_write = framed_write.with(|x: Sk| {
         // bincode::serialize returns Vec<u8>.
         // Map to bytes::Bytes, because LengthDelimitedCodec implements,
         // the Encoder trait for Bytes, which makes FramedWrite a Sink
         // of Bytes as well.
-        let serialized = match bincode::serialize(&x) {
+        let serialized = match net_stream::serialize(&x) {
             Ok(v) => Ok(bytes::Bytes::from(v)),
             Err(e) => Err(Error::Bincode(e)),
         };
-        future::ready(serialized)
+        std::future::ready(serialized)
     });
 
     (deserialized_read, serialized_write)

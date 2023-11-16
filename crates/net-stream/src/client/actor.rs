@@ -1,18 +1,16 @@
 //! Client actor
 
 use super::event::Event;
-use crate::actors::read_actor;
-use crate::actors::read_actor::ReadActorShutdownReason;
-use crate::actors::write_actor;
-use crate::actors::write_actor::WriteActorShutdownReason;
-use crate::actors::ActorShutdown;
+use crate::io_actors::read_actor;
+use crate::io_actors::read_actor::ReadActorShutdownReason;
+use crate::io_actors::write_actor;
+use crate::io_actors::write_actor::WriteActorShutdownReason;
+use crate::io_actors::ActorShutdown;
 use crate::message_types::MessageTypes;
 use crate::message_types::TcpFromServer;
 use crate::message_types::TcpToServer;
 use crate::message_types::UdpFromServer;
 use crate::message_types::UdpToServer;
-use crate::networking::tcp;
-use crate::networking::udp;
 use core::pin::Pin;
 use futures::channel::mpsc;
 use futures::stream;
@@ -73,10 +71,10 @@ pub(crate) async fn actor<M>(
     let (udp_reader_tx, udp_reader_rx) = mpsc::channel::<read_actor::ReadActorEvent<Result<UdpFromServer<M>, udp::Error>>>(64);
 
     // Start IO actors
-    let tcp_read_actor = crate::actors::read_actor::spawn_actor(tcp_rx, tcp_reader_tx);
-    let mut tcp_write_actor = crate::actors::write_actor::spawn_actor(tcp_tx);
-    let udp_read_actor = crate::actors::read_actor::spawn_actor(udp_rx, udp_reader_tx);
-    let mut udp_write_actor = crate::actors::write_actor::spawn_actor(udp_tx);
+    let tcp_read_actor = crate::io_actors::read_actor::spawn_actor(tcp_rx, tcp_reader_tx);
+    let mut tcp_write_actor = crate::io_actors::write_actor::spawn_actor(tcp_tx);
+    let udp_read_actor = crate::io_actors::read_actor::spawn_actor(udp_rx, udp_reader_tx);
+    let mut udp_write_actor = crate::io_actors::write_actor::spawn_actor(udp_tx);
 
     // Terminate incoming streams with an EndOfStream message
     let msg_receiver = msg_receiver

@@ -4,9 +4,9 @@ mod actor;
 pub mod actor_handle;
 pub mod event;
 
-use crate::client::actor_handle::ActorHandle;
-use crate::client::event::Event;
 use crate::message_types::MessageTypes;
+use actor_handle::ActorHandle;
+use event::Event;
 use futures::channel::mpsc;
 use tokio::net::TcpStream;
 use tokio::net::UdpSocket;

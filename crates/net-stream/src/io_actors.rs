@@ -1,10 +1,8 @@
-use core::fmt::Display;
-
 pub mod read_actor;
 pub mod write_actor;
 
 #[derive(Debug, Clone, Copy, derive_more::From)]
-pub(crate) enum ActorShutdown<T> {
+pub enum ActorShutdown<T> {
     Controlled(T),
 
     #[from]
@@ -22,26 +20,20 @@ impl<T> From<Result<T, tokio::task::JoinError>> for ActorShutdown<T> {
     fn from(result: Result<T, tokio::task::JoinError>) -> Self {
         match result {
             Ok(t) => Self::Controlled(t),
-            Err(err) => Self::from(ErraticActorShutdown::from(err)),
+            Err(err) => Self::Erratic(ErraticActorShutdown::from(err)),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum ErraticActorShutdown {
+#[derive(Debug, Clone, Copy, derive_more::Display)]
+pub enum ErraticActorShutdown {
     /// Actor task was cancelled
+    #[display(fmt = "Actor task was cancelled")]
     Cancelled,
 
     /// Actor task panicked
+    #[display(fmt = "Actor task panicked")]
     Panic,
-}
-impl Display for ErraticActorShutdown {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErraticActorShutdown::Cancelled => write!(f, "Actor task was cancelled"),
-            ErraticActorShutdown::Panic => write!(f, "Actor task panicked"),
-        }
-    }
 }
 
 impl From<tokio::task::JoinError> for ErraticActorShutdown {

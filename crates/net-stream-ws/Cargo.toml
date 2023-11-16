@@ -1,0 +1,15 @@
+[package]
+name = "net-stream-ws"
+version.workspace = true
+authors.workspace = true
+description = "TODO"
+edition.workspace = true
+publish = true
+readme = "README.md"
+license.workspace = true
+repository.workspace = true
+
+[dependencies.net-stream]
+workspace = true
+
+[dependencies]

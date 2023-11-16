@@ -1,5 +1,4 @@
 use super::ActorShutdown;
-use core::fmt::Display;
 use core::future::Future;
 use core::pin::Pin;
 use futures::channel::mpsc;
@@ -12,7 +11,7 @@ use futures::StreamExt;
 use type_toppings::StreamExt as _;
 
 /// Spawn new actor
-pub(crate) fn spawn_actor<T, S, Tx>(stream: S, tx: Tx) -> ReadActorHandle
+pub fn spawn_actor<T, S, Tx>(stream: S, tx: Tx) -> ReadActorHandle
 where
     T: Send + 'static,
     S: Stream<Item = T> + Send + Unpin + 'static,
@@ -27,44 +26,38 @@ where
 }
 
 #[derive(thiserror::Error, Debug)]
-pub(crate) enum ReadActorError {
-    #[error("Actor cannot keep up.")]
+pub enum ReadActorError {
+    #[error("Actor cannot keep up")]
     ChannelFull,
 
-    #[error("Actor no longer accepting messages.")]
+    #[error("Actor no longer accepting messages")]
     ChannelClosed,
 }
 
 /// Actor output type.
 #[derive(Debug, Clone)]
-pub(crate) enum ReadActorEvent<T> {
+pub enum ReadActorEvent<T> {
     StreamItem(T),
 }
 
 /// Reason for actor shutdown.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ReadActorShutdownReason {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
+pub enum ReadActorShutdownReason {
     /// Actor was signalled to shutdown.
+    #[display(fmt = "Signalled shutdown")]
     Signalled,
 
     /// End of stream.
+    #[display(fmt = "End of stream")]
     EndOfStream,
 
     /// All actor handles were dropped.
+    #[display(fmt = "All actor handles dropped")]
     ActorHandlesDropped,
 
     /// Receiver closed channel.
+    #[display(fmt = "Receiver closed channel")]
     ReceiverClosedChannel,
-}
-impl Display for ReadActorShutdownReason {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ReadActorShutdownReason::Signalled => write!(f, "Signalled shutdown"),
-            ReadActorShutdownReason::EndOfStream => write!(f, "End of stream"),
-            ReadActorShutdownReason::ActorHandlesDropped => write!(f, "All actor handles dropped"),
-            ReadActorShutdownReason::ReceiverClosedChannel => write!(f, "Receiver closed channel"),
-        }
-    }
 }
 
 // TODO: When type_alias_impl_trait is stabilized, this becomes:
@@ -74,7 +67,7 @@ type ShutdownReasonFuture = futures::future::Shared<Pin<Box<dyn Future<Output = 
 
 /// Actor handle.
 #[derive(Debug, Clone)]
-pub(crate) struct ReadActorHandle {
+pub struct ReadActorHandle {
     actor_msg_tx: mpsc::Sender<ActorMessage>,
     shutdown_reason: ShutdownReasonFuture,
 }

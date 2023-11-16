@@ -9,7 +9,7 @@ use futures::SinkExt;
 use futures::StreamExt;
 
 /// Spawn new actor
-pub(crate) fn spawn_actor<S, T>(sink: S) -> WriteActorHandle<T>
+pub fn spawn_actor<S, T>(sink: S) -> WriteActorHandle<T>
 where
     T: Send + 'static,
     S: Sink<T> + Send + Unpin + 'static,
@@ -24,7 +24,7 @@ where
 }
 
 #[derive(thiserror::Error, Debug)]
-pub(crate) enum WriteActorError {
+pub enum WriteActorError {
     #[error("Actor could not keep up, channel is full.")]
     ChannelFull,
 
@@ -34,7 +34,7 @@ pub(crate) enum WriteActorError {
 
 /// Reason for actor shutdown.
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum WriteActorShutdownReason {
+pub enum WriteActorShutdownReason {
     /// Actor was signalled to shutdown.
     Signalled,
 
@@ -52,7 +52,7 @@ type ShutdownReasonFuture = futures::future::Shared<Pin<Box<dyn Future<Output = 
 
 /// Actor handle.
 #[derive(Debug, Clone)]
-pub(crate) struct WriteActorHandle<T> {
+pub struct WriteActorHandle<T> {
     actor_msg_tx: mpsc::Sender<ActorMessage<T>>,
     shutdown_reason: ShutdownReasonFuture,
 }
