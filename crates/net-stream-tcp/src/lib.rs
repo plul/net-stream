@@ -4,9 +4,9 @@
 #![deny(clippy::mod_module_files)]
 #![warn(missing_docs)]
 
-mod client;
+pub mod client;
 mod codec;
-mod server;
+pub mod server;
 
 use core::fmt;
 use serde::de::DeserializeOwned;

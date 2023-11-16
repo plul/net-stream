@@ -2,7 +2,7 @@
 
 mod actor;
 mod actor_handle;
-mod event;
+pub mod event;
 
 use crate::MessageTypes;
 pub use actor_handle::ActorHandle;
@@ -27,10 +27,9 @@ const DEFAULT_MAX_CONNECTIONS: usize = 2;
 ///
 /// # Examples
 /// ```
-/// # use net_stream::server::Config;
+/// # use net_stream_tcp::server::Config;
 /// let server_config = Config {
 ///    max_connections: 100,
-///    ..Default::default()
 /// };
 /// ```
 #[derive(Debug, Clone, SmartDefault)]

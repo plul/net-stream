@@ -5,13 +5,9 @@
 // #![feature(public_private_dependencies)]
 // in the meantime use https://github.com/awslabs/cargo-check-external-types
 
-//! Server/client TCP+UDP networking abstraction library with framing and
-//! serialization built-in.
+//! Server/client networking abstraction library with framing and serialization built-in.
 
-// pub mod client;
-// pub mod server;
 pub mod io_actors;
-// mod message_types;
 
 /// Serialize
 pub fn serialize<T: serde::Serialize>(t: &T) -> Result<Vec<u8>, bincode::Error> {

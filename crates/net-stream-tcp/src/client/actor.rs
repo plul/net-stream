@@ -1,6 +1,6 @@
 //! Client actor
 
-use crate::client::Event;
+use super::event;
 use crate::MessageTypes;
 use crate::MsgFromServer;
 use crate::MsgToServer;
@@ -34,7 +34,7 @@ where
 
 pub(crate) async fn actor<M>(
     msg_receiver: mpsc::Receiver<Message<M>>,
-    mut event_sender: mpsc::Sender<Event<M>>,
+    mut event_sender: mpsc::Sender<event::Event<M>>,
     tcp_stream: TcpStream,
     server_addr: SocketAddr,
 ) where
@@ -90,7 +90,7 @@ pub(crate) async fn actor<M>(
                     read_actor::ReadActorEvent::StreamItem(item) => match item {
                         Ok(message) => match message {
                             MsgFromServer::ApplicationLogic(msg) => {
-                                if let Err(err) = event_sender.send(Event::Message(msg)).await {
+                                if let Err(err) = event_sender.send(event::Event::Message(msg)).await {
                                     log::error!("Failed to emit event: {err}");
                                     break;
                                 }

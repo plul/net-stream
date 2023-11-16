@@ -1,7 +1,7 @@
 //! Server output event types.
 
-use super::peer_uid::PeerUid;
 use super::MessageTypes;
+use super::PeerUid;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -11,11 +11,8 @@ pub enum Event<M: MessageTypes> {
     /// New peer connected.
     NewPeer(NewPeer),
 
-    /// TCP message received.
-    TcpMessage(Message<M::TcpToServer>),
-
     /// UDP message received.
-    UdpMessage(Message<M::UdpToServer>),
+    Message(Message<M::ToServer>),
 
     /// Peer is disconnected.
     PeerDisconnect(PeerDisconnect),

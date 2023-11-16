@@ -1,5 +1,6 @@
 mod actor;
 mod actor_handle;
+pub mod event;
 
 use crate::MessageTypes;
 use actor_handle::ActorHandle;
@@ -8,7 +9,9 @@ use serde::Deserialize;
 use serde::Serialize;
 
 /// Connect.
-pub async fn connect<M: MessageTypes>(server_host: &str) -> Result<(ActorHandle<M>, futures::channel::mpsc::Receiver<Event<M>>), ConnectError> {
+pub async fn connect<M: MessageTypes>(
+    server_host: &str,
+) -> Result<(ActorHandle<M>, futures::channel::mpsc::Receiver<event::Event<M>>), ConnectError> {
     // Resolve host (DNS lookup)
     log::info!("Resolving host {server_host}");
     let mut server_addr_iter = tokio::net::lookup_host(server_host).await?;
@@ -25,19 +28,12 @@ pub async fn connect<M: MessageTypes>(server_host: &str) -> Result<(ActorHandle<
     log::info!("TCP stream local address: {local_addr}");
 
     let (actor_msg_sender, actor_msg_receiver) = mpsc::channel::<actor::Message<M>>(32);
-    let (event_sender, event_receiver) = mpsc::channel::<Event<M>>(128);
+    let (event_sender, event_receiver) = mpsc::channel::<event::Event<M>>(128);
 
     let join_handle = tokio::spawn(actor::actor(actor_msg_receiver, event_sender, tcp_stream, server_addr));
     let actor_handle = ActorHandle::new(join_handle, actor_msg_sender);
 
     Ok((actor_handle, event_receiver))
-}
-
-/// Client event.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Event<M: MessageTypes> {
-    /// Received message.
-    Message(M::FromServer),
 }
 
 /// Error connecting to server.
