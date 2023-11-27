@@ -1,4 +1,4 @@
-//! Server.
+//! UDP server.
 
 mod actor;
 mod actor_handle;
@@ -12,6 +12,7 @@ use serde::Serialize;
 use smart_default::SmartDefault;
 use std::net::SocketAddr;
 use tokio::net::UdpSocket;
+use uuid::Uuid;
 
 /// Error starting server.
 #[derive(thiserror::Error, Debug)]
@@ -21,28 +22,20 @@ pub enum StartServerError {
     Io(#[from] ::std::io::Error),
 }
 
-// TODO: What does this mean for the UDP server?
-const DEFAULT_MAX_CONNECTIONS: usize = 2;
-const DEFAULT_UDP_HEARTBEAT_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
-
 /// Server configuration
 ///
 /// # Examples
 /// ```
-/// # use net_stream::server::Config;
+/// # use net_stream_udp::server::Config;
+/// # use std::time::Duration;
 /// let server_config = Config {
-///    max_connections: 100,
-///    ..Default::default()
+///    heartbeat_interval: Duration::from_secs(1),
 /// };
 /// ```
 #[derive(Debug, Clone, SmartDefault)]
 pub struct Config {
-    /// Limit number of concurrently connected clients.
-    #[default(DEFAULT_MAX_CONNECTIONS)]
-    pub max_connections: usize,
-
     /// Interval between each UDP heartbeat message being emitted to connected peers.
-    #[default(DEFAULT_UDP_HEARTBEAT_INTERVAL)]
+    #[default(crate::DEFAULT_UDP_HEARTBEAT_INTERVAL)]
     pub heartbeat_interval: std::time::Duration,
 }
 
@@ -72,9 +65,4 @@ pub async fn start<M: MessageTypes>(
 
 /// Unique ID for a client connection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default, derive_more::Deref, derive_more::From)]
-pub struct PeerUid(pub u64);
-impl PeerUid {
-    pub(crate) fn increment(&mut self) {
-        self.0 += 1;
-    }
-}
+pub struct PeerUid(pub Uuid);

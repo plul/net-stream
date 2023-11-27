@@ -29,5 +29,7 @@ type-toppings.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
-env_logger = "0.10"
+env_logger.workspace = true
 tokio = { workspace = true, features = ["io-std", "io-util", "time", "macros", "rt-multi-thread"] }
+clap.workspace = true
+anyhow.workspace = true

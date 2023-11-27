@@ -1,19 +1,30 @@
 use assert_let_bind::assert_let;
 use core::time::Duration;
 use futures::StreamExt;
-use net_stream::server::event::Event;
+use net_stream_udp::server::event::Event;
 use tokio::net::TcpStream;
 use tokio::net::UdpSocket;
 use tokio::time::timeout;
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct M;
+impl net_stream_udp::MessageTypes for M {
+    type ToServer = String;
+    type FromServer = String;
+}
+
 #[tokio::test]
 async fn udp_garbage() {
-    crate::env_logger_setup();
+    env_logger::builder()
+        .filter(None, log::LevelFilter::Debug)
+        .parse_default_env()
+        .is_test(true)
+        .init();
 
     let server_socket_addr = "127.0.0.1:5100".parse().unwrap();
 
-    let config = net_stream::server::Config::default();
-    let (_server_handle, mut server_rx) = net_stream::server::start::<crate::StringMessages>(server_socket_addr, server_socket_addr, config)
+    let config = net_stream_udp::server::Config::default();
+    let (_server_handle, mut server_rx) = net_stream_udp::server::start::<M>(server_socket_addr, config)
         .await
         .expect("Server failed startup");
 

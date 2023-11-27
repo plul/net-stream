@@ -26,7 +26,7 @@ async fn main() {
     let server_socket_addr = "127.0.0.1:5100".parse().unwrap();
 
     let config = net_stream_tcp::server::Config::default();
-    let (_server_handle, mut server_rx) = net_stream_tcp::server::start::<M>(server_socket_addr, config)
+    let mut server = net_stream_tcp::server::start::<M>(server_socket_addr, config)
         .await
         .expect("Server failed startup");
 
@@ -35,12 +35,12 @@ async fn main() {
     tcp_client.writable().await.unwrap();
 
     // Expect connection event
-    let ev = timeout(Duration::from_millis(100), server_rx.next()).await.unwrap().unwrap();
+    let ev = timeout(Duration::from_millis(100), server.event_receiver.next()).await.unwrap().unwrap();
     assert!(matches!(ev, Event::NewPeer(_)));
 
     // Garbage on TCP should drop client
     tcp_client.write_all(b"garbage").await.unwrap();
-    let ev = timeout(Duration::from_millis(100), server_rx.next()).await.unwrap().unwrap();
+    let ev = timeout(Duration::from_millis(100), server.event_receiver.next()).await.unwrap().unwrap();
     assert_let!(Event::PeerDisconnect(peer_disconnect), ev);
     assert!(matches!(
         peer_disconnect.disconnect_reason,

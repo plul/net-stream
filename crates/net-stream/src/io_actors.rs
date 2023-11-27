@@ -1,3 +1,5 @@
+//! IO actors.
+
 pub mod read_actor;
 pub mod write_actor;
 

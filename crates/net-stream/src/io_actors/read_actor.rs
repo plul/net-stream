@@ -1,3 +1,5 @@
+//! IO read actor.
+
 use super::ActorShutdown;
 use core::future::Future;
 use core::pin::Pin;

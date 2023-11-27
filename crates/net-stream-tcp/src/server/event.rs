@@ -1,3 +1,5 @@
+//! Event.
+
 use super::PeerUid;
 use crate::MessageTypes;
 use serde::Deserialize;

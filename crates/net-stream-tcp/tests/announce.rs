@@ -25,7 +25,7 @@ async fn main() {
 
     log::info!("Starting server...");
     let config = net_stream_tcp::server::Config::default();
-    let (server_handle, mut server_rx) = net_stream_tcp::server::start::<M>(server_socket_addr, config)
+    let mut server = net_stream_tcp::server::start::<M>(server_socket_addr, config)
         .await
         .expect("Server failed startup");
 
@@ -34,9 +34,9 @@ async fn main() {
     log::info!("Connecting client 1...");
     let (_client_1_handle, mut client_1_events) = net_stream_tcp::client::connect::<M>(server_host).await.unwrap();
     log::info!("OK: Connected client 1");
-    assert!(matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_)));
+    assert!(matches!(server.event_receiver.next().await.unwrap(), ServerEvent::NewPeer(_)));
 
-    server_handle.announce(String::from("First message!"));
+    server.actor_handle.announce(String::from("First message!"));
 
     {
         let msg = client_1_events.next().await.unwrap();
@@ -47,9 +47,9 @@ async fn main() {
     log::info!("Connecting client 2...");
     let (_client_2_handle, mut client_2_events) = net_stream_tcp::client::connect::<M>(server_host).await.unwrap();
     log::info!("OK: Connected client 2");
-    assert!(matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_)));
+    assert!(matches!(server.event_receiver.next().await.unwrap(), ServerEvent::NewPeer(_)));
 
-    server_handle.announce(String::from("Second message!"));
+    server.actor_handle.announce(String::from("Second message!"));
 
     {
         let event = client_1_events.next().await.unwrap();

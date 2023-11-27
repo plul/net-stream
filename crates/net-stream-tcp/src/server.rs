@@ -48,11 +48,9 @@ pub struct Config {
 /// The actor handles can be freely cloned. When the last handle to the server actor is
 /// dropped, or the receiver is closed or dropped, the server task will begin graceful
 /// shut down.
-pub async fn start<M: MessageTypes>(
-    socket_addr: SocketAddr,
-    config: Config,
-) -> Result<(ActorHandle<M>, mpsc::UnboundedReceiver<event::Event<M>>), StartServerError> {
+pub async fn start<M: MessageTypes>(socket_addr: SocketAddr, config: Config) -> Result<Server<M>, StartServerError> {
     let tcp_listener = TcpListener::bind(socket_addr).await?;
+    let local_addr = tcp_listener.local_addr()?;
 
     let (actor_msg_sender, actor_msg_receiver) = mpsc::unbounded::<actor::Message<M>>();
     let (event_sender, event_receiver) = mpsc::unbounded::<event::Event<M>>();
@@ -60,7 +58,23 @@ pub async fn start<M: MessageTypes>(
     let join_handle = tokio::spawn(actor::actor(actor_msg_receiver, tcp_listener, event_sender, config));
     let actor_handle = ActorHandle::new(join_handle, actor_msg_sender);
 
-    Ok((actor_handle, event_receiver))
+    Ok(Server {
+        actor_handle,
+        event_receiver,
+        local_addr,
+    })
+}
+
+/// Server returned from the [start()] method.
+pub struct Server<M: MessageTypes> {
+    /// Actor handle.
+    pub actor_handle: ActorHandle<M>,
+
+    /// Event receiver.
+    pub event_receiver: mpsc::UnboundedReceiver<event::Event<M>>,
+
+    /// Local address.
+    pub local_addr: SocketAddr,
 }
 
 /// Unique ID for a client connection.

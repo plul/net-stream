@@ -1,3 +1,5 @@
+//! IO write actor.
+
 use super::ActorShutdown;
 use core::fmt::Debug;
 use core::future::Future;

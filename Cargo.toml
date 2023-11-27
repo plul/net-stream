@@ -27,6 +27,9 @@ tokio-stream = { version = "0.1.9", default-features = false, features = [
 tokio-util = { version = "0.7", features = ["net", "codec"] }
 type-toppings = "0.1.0"
 uuid = { version = "1.2.2", features = ["serde", "v4", "fast-rng"] }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+env_logger = "0.10"
 
 net-stream = "0.1.1"
 net-stream-udp = "0.1.1"

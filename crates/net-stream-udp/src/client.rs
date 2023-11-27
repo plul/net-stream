@@ -1,15 +1,38 @@
+//! UDP client.
+
 mod actor;
 mod actor_handle;
+pub mod event;
 
 use crate::MessageTypes;
 use actor_handle::ActorHandle;
 use futures::channel::mpsc;
-use serde::Deserialize;
-use serde::Serialize;
+use smart_default::SmartDefault;
 use tokio::net::UdpSocket;
 
+/// Client configuration.
+///
+/// # Examples
+/// ```
+/// # use net_stream_udp::client::Config;
+/// # use std::time::Duration;
+/// let server_config = Config {
+///    heartbeat_interval: Duration::from_secs(1),
+/// };
+/// ```
+#[derive(Debug, Clone, SmartDefault)]
+pub struct Config {
+    /// Interval between each UDP heartbeat message sent to server.
+    #[default(crate::DEFAULT_UDP_HEARTBEAT_INTERVAL)]
+    pub heartbeat_interval: std::time::Duration,
+}
+
 /// Connect.
-pub async fn connect<M: MessageTypes>(server_host: &str) -> Result<(ActorHandle<M>, futures::channel::mpsc::Receiver<Event<M>>), ConnectError> {
+// TODO: What is meant by "connect"? This is UDP. What it means to connect in this case is that we resolve the server address, start sending heartbeats and listen for incoming UDP messages from the server.
+pub async fn connect<M: MessageTypes>(
+    server_host: &str,
+    config: Config,
+) -> Result<(ActorHandle<M>, futures::channel::mpsc::Receiver<event::Event<M>>), ConnectError> {
     // Resolve host (DNS lookup)
     log::debug!("Resolving host {server_host}");
     let mut server_addr_iter = tokio::net::lookup_host(server_host).await?;
@@ -28,22 +51,12 @@ pub async fn connect<M: MessageTypes>(server_host: &str) -> Result<(ActorHandle<
     log::debug!("Set default destination for UDP socket");
 
     let (actor_msg_sender, actor_msg_receiver) = mpsc::channel::<actor::Message<M>>(32);
-    let (event_sender, event_receiver) = mpsc::channel::<Event<M>>(128);
+    let (event_sender, event_receiver) = mpsc::channel::<event::Event<M>>(128);
 
-    let join_handle = tokio::spawn(actor::actor(actor_msg_receiver, event_sender, udp_socket, server_addr));
+    let join_handle = tokio::spawn(actor::actor(actor_msg_receiver, event_sender, udp_socket, server_addr, config));
     let actor_handle = ActorHandle::new(join_handle, actor_msg_sender);
 
     Ok((actor_handle, event_receiver))
-}
-
-/// Client event.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Event<M: MessageTypes> {
-    /// Received message.
-    Message(M::FromServer),
-
-    /// Client has received its first UDP message from server, confirming that there is no firewall blocking incoming UDP messages.
-    CanReceiveMessages,
 }
 
 /// Client status

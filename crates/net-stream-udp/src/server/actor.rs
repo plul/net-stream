@@ -109,10 +109,12 @@ pub(crate) async fn actor<M>(
         #[cfg(debug_assertions)]
         state.assert_invariants();
 
+        // Drop peers
         for (peer_uid, reason) in peers_to_drop.drain(..) {
             drop_peer(&mut state, peer_uid, reason);
         }
 
+        // Match next server event
         match state.streams.next().await.unwrap() {
             Incoming::ActorMessage(msg) => {
                 handle_actor_message(&mut state, msg);
@@ -265,7 +267,7 @@ fn handle_actor_message<M: MessageTypes>(state: &mut State<M>, msg: Message<M>) 
 }
 
 fn announce<M: MessageTypes>(state: &mut State<M>, msg: MsgFromServer<M>) {
-    log::debug!("Announcing on UDP");
+    log::trace!("Announcing on UDP");
     for (peer_uid, peer) in state.peers.iter() {
         log::trace!("Announcing to peer {peer_uid:?} at {}", peer.socket_addr);
         match state.write_actor.feed((msg.clone(), peer.socket_addr)) {
@@ -299,6 +301,10 @@ fn handle_reader_stream_item<M: MessageTypes>(state: &mut State<M>, message: Msg
             if let Err(err) = state.event_sender.unbounded_send(ev) {
                 todo!("Failed to emit event: {err}");
             }
+        }
+        MsgToServer::Heartbeat => {
+            // TODO:
+            // This means the client is still there. Should there be a timeout which, with the reception of this event is reset? Should that be left to application level logic?
         }
     }
 }

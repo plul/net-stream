@@ -1,6 +1,6 @@
 //! Client actor
 
-use super::Event;
+use super::event::Event;
 use crate::MessageTypes;
 use crate::MsgFromServer;
 use crate::MsgToServer;
@@ -48,6 +48,7 @@ pub(crate) async fn actor<M>(
     mut event_sender: mpsc::Sender<Event<M>>,
     udp_socket: UdpSocket,
     server_addr: SocketAddr,
+    config: crate::client::Config,
 ) where
     M: MessageTypes,
 {
@@ -84,8 +85,13 @@ pub(crate) async fn actor<M>(
             .map(|shutdown_reason| Incoming::EndOfStream(IncomingKind::Writer(shutdown_reason))),
     );
 
+    let heartbeat = {
+        let interval = tokio::time::interval(config.heartbeat_interval);
+        tokio_stream::wrappers::IntervalStream::new(interval).map(|_| Incoming::Heartbeat)
+    };
+
     let mut streams: stream::SelectAll<Pin<Box<dyn Stream<Item = Incoming<M>> + Send>>> =
-        stream::select_all([msg_receiver.boxed(), reader_rx.boxed(), writer_rx.boxed()]);
+        stream::select_all([msg_receiver.boxed(), reader_rx.boxed(), writer_rx.boxed(), heartbeat.boxed()]);
 
     let mut has_received: bool = false;
 
@@ -142,6 +148,14 @@ pub(crate) async fn actor<M>(
                     }
                 }
             },
+            Incoming::Heartbeat => {
+                if let Err(err) = write_actor.send(MsgToServer::Heartbeat) {
+                    match err {
+                        write_actor::WriteActorError::ChannelFull => todo!(),
+                        write_actor::WriteActorError::ChannelClosed => todo!(),
+                    }
+                }
+            }
             Incoming::EndOfStream(kind) => match kind {
                 IncomingKind::ActorMessage => {
                     // This means actor handle is dropped
@@ -167,6 +181,9 @@ pub(crate) async fn actor<M>(
 enum Incoming<M: MessageTypes> {
     /// Actor message received
     ActorMessage(Message<M>),
+
+    /// Emit heartbeat
+    Heartbeat,
 
     /// Message received from the UDP reader actor
     Reader(read_actor::ReadActorEvent<Result<MsgFromServer<M>, crate::codec::Error>>),

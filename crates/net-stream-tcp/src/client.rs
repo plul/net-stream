@@ -1,12 +1,10 @@
 mod actor;
-mod actor_handle;
+pub mod actor_handle;
 pub mod event;
 
 use crate::MessageTypes;
 use actor_handle::ActorHandle;
 use futures::channel::mpsc;
-use serde::Deserialize;
-use serde::Serialize;
 
 /// Connect.
 pub async fn connect<M: MessageTypes>(
