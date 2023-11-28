@@ -27,15 +27,15 @@ async fn udp_heartbeat() {
         heartbeat_interval: HEARTBEAT_INTERVAL,
         ..Default::default()
     };
-    let (_server_handle, mut server_rx) = net_stream_udp::server::start::<M>(server_socket_addr, config)
+    let mut server = net_stream_udp::server::start::<M>(server_socket_addr, config)
         .await
         .expect("Server failed startup");
-    log::info!("Started server");
+    log::info!("Started server on {}", server.local_addr);
 
     log::info!("Connecting client ...");
     let client_config = net_stream_udp::client::Config::default();
     let (mut client_handle, mut client_events) = net_stream_udp::client::connect::<M>(server_host, client_config).await.unwrap();
-    assert!(matches!(server_rx.next().await.unwrap(), ServerEvent::NewPeer(_)));
+    assert!(matches!(server.event_receiver.next().await.unwrap(), ServerEvent::NewPeer(_)));
     log::info!("Connected client");
 
     log::info!("Expecting no immediate heartbeat...");

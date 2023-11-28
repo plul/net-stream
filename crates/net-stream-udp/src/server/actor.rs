@@ -93,26 +93,18 @@ pub(crate) async fn actor<M>(
     let mut state = State {
         peers: HashMap::new(),
         config,
-        next_peer_uid: PeerUid::default(),
         streams,
-        peer_udp_socket_addr_to_peer_uid: HashMap::new(),
-        peer_handshake_uuid_to_peer_uid: HashMap::new(),
+        peer_socket_addr_to_peer_uid: HashMap::new(),
         event_sender,
         write_actor,
     };
 
     log::info!("Starting server loop");
 
-    let mut peers_to_drop: Vec<(PeerUid, event::DisconnectReason)> = Vec::new();
     loop {
         // Sanity check of invariants.
         #[cfg(debug_assertions)]
         state.assert_invariants();
-
-        // Drop peers
-        for (peer_uid, reason) in peers_to_drop.drain(..) {
-            drop_peer(&mut state, peer_uid, reason);
-        }
 
         // Match next server event
         match state.streams.next().await.unwrap() {
@@ -128,8 +120,15 @@ pub(crate) async fn actor<M>(
                         }
                         Err(err) => {
                             log::warn!("Received data from peer on UDP that was not understood. {err}");
-                            if let Some(peer_uid) = state.peer_udp_socket_addr_to_peer_uid.get(&socket_addr) {
-                                peers_to_drop.push((*peer_uid, event::DisconnectReason::PeerSubmittedUnintelligibleData));
+                            if let Some(&peer_uid) = state.peer_socket_addr_to_peer_uid.get(&socket_addr) {
+                                let peer = state.peers.get_mut(&peer_uid).unwrap();
+                                if !peer.unintelligible {
+                                    peer.unintelligible = true;
+                                    let ev = event::Event::UnintelligiblePeer(event::UnintelligiblePeer { peer_uid });
+                                    if let Err(err) = state.event_sender.unbounded_send(ev) {
+                                        todo!("Failed to emit event: {err}");
+                                    }
+                                }
                             };
                         }
                     }
@@ -175,7 +174,17 @@ pub(crate) async fn actor<M>(
 #[derive(Debug, Clone)]
 struct Peer {
     socket_addr: SocketAddr,
-    handshake_uuid: Uuid,
+
+    /// One or more un-deserializable payloads were received from the peer.
+    unintelligible: bool,
+}
+impl Peer {
+    fn new(peer_socket_addr: SocketAddr) -> Peer {
+        Peer {
+            socket_addr: peer_socket_addr,
+            unintelligible: false,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -203,11 +212,9 @@ enum IncomingKind {
 struct State<M: MessageTypes> {
     /// Connected peers
     peers: HashMap<PeerUid, Peer>,
+    peer_socket_addr_to_peer_uid: HashMap<SocketAddr, PeerUid>,
     config: crate::server::Config,
-    next_peer_uid: PeerUid,
     streams: stream::SelectAll<Pin<Box<dyn Stream<Item = Incoming<M>> + Send>>>,
-    peer_udp_socket_addr_to_peer_uid: HashMap<SocketAddr, PeerUid>,
-    peer_handshake_uuid_to_peer_uid: HashMap<Uuid, PeerUid>,
     event_sender: mpsc::UnboundedSender<event::Event<M>>,
     write_actor: WriteActorHandle<(MsgFromServer<M>, SocketAddr)>,
 }
@@ -216,29 +223,7 @@ impl<M: MessageTypes> State<M> {
     /// Check invariants.
     pub(crate) fn assert_invariants(&self) {
         // Should not hold onto socket addr -> peer UID mappings after peer is gone.
-        assert!(self.peers.len() >= self.peer_udp_socket_addr_to_peer_uid.len());
-
-        // Should not hold onto peer "handshake UUID" -> peer UID mappings after peer is gone.
-        assert!(self.peers.len() >= self.peer_handshake_uuid_to_peer_uid.len());
-    }
-}
-
-fn drop_peer<M: MessageTypes>(state: &mut State<M>, peer_uid: PeerUid, reason: event::DisconnectReason) {
-    log::info!("Dropping peer: {peer_uid:?}");
-
-    let Some(mut peer) = state.peers.remove(&peer_uid) else {
-        return;
-    };
-
-    state.peer_udp_socket_addr_to_peer_uid.remove(&peer.socket_addr);
-    state.peer_handshake_uuid_to_peer_uid.remove(&peer.handshake_uuid);
-
-    let ev = event::Event::PeerDisconnect(event::PeerDisconnect {
-        peer_uid,
-        disconnect_reason: reason,
-    });
-    if let Err(err) = state.event_sender.unbounded_send(ev) {
-        todo!("Failed to emit event: {err}");
+        assert!(self.peers.len() >= self.peer_socket_addr_to_peer_uid.len());
     }
 }
 
@@ -266,36 +251,61 @@ fn handle_actor_message<M: MessageTypes>(state: &mut State<M>, msg: Message<M>) 
     }
 }
 
+/// Sends message out to peer
+// TODO: Propagate errors?
+fn send_msg<M: MessageTypes>(state: &mut State<M>, msg: MsgFromServer<M>, peer_socket_addr: SocketAddr) {
+    if let Err(err) = state.write_actor.send((msg, peer_socket_addr)) {
+        log::error!("Failed to forward msg to UDP write actor: {err}");
+    }
+}
+
+/// Sends message out to all peers
+// TODO: Propagate errors?
 fn announce<M: MessageTypes>(state: &mut State<M>, msg: MsgFromServer<M>) {
     log::trace!("Announcing on UDP");
     for (peer_uid, peer) in state.peers.iter() {
         log::trace!("Announcing to peer {peer_uid:?} at {}", peer.socket_addr);
-        match state.write_actor.feed((msg.clone(), peer.socket_addr)) {
-            Ok(()) => {}
-            Err(err) => {
-                log::error!("Failed to forward msg to UDP write actor: {err}");
-            }
+        if let Err(err) = state.write_actor.feed((msg.clone(), peer.socket_addr)) {
+            log::error!("Failed to forward msg to UDP write actor: {err}");
         }
     }
-    match state.write_actor.flush() {
-        Ok(()) => {}
-        Err(err) => {
-            log::error!("Failed to flush UDP write actor: {err}");
-        }
-    };
+    if let Err(err) = state.write_actor.flush() {
+        log::error!("Failed to flush UDP write actor: {err}");
+    }
 }
 
-fn handle_reader_stream_item<M: MessageTypes>(state: &mut State<M>, message: MsgToServer<M>, socket_addr: SocketAddr) {
-    log::trace!("Message received from a UDP reader actor {socket_addr:?} {message:?}");
+fn handle_reader_stream_item<M: MessageTypes>(state: &mut State<M>, message: MsgToServer<M>, peer_socket_addr: SocketAddr) {
+    log::trace!("Message received from UDP reader actor {:?} {:?}", peer_socket_addr, message);
+
+    let peer_uid: PeerUid = match state.peer_socket_addr_to_peer_uid.entry(peer_socket_addr) {
+        std::collections::hash_map::Entry::Occupied(entry) => {
+            let peer_uid = *entry.get();
+            peer_uid
+        }
+        std::collections::hash_map::Entry::Vacant(entry) => {
+            let peer_uid = PeerUid(Uuid::new_v4());
+            entry.insert(peer_uid);
+
+            // Emit New Peer event
+            let ev = event::Event::NewPeer(event::NewPeer { peer_uid });
+            if let Err(err) = state.event_sender.unbounded_send(ev) {
+                todo!("Failed to emit event: {err}");
+            }
+
+            // Send immediate heartbeat to peer
+            send_msg(state, MsgFromServer::Heartbeat, peer_socket_addr);
+
+            let peer = Peer::new(peer_socket_addr);
+            state.peers.insert(peer_uid, peer);
+
+            peer_uid
+        }
+    };
 
     match message {
         MsgToServer::ApplicationLogic(msg) => {
-            let Some(peer_uid) = state.peer_udp_socket_addr_to_peer_uid.get(&socket_addr) else {
-                log::debug!("Received UDP message from unconnected client {socket_addr}");
-                return;
-            };
             let ev = event::Event::Message(event::Message {
-                from: *peer_uid,
+                from: peer_uid,
                 message: msg,
             });
             if let Err(err) = state.event_sender.unbounded_send(ev) {
@@ -305,6 +315,7 @@ fn handle_reader_stream_item<M: MessageTypes>(state: &mut State<M>, message: Msg
         MsgToServer::Heartbeat => {
             // TODO:
             // This means the client is still there. Should there be a timeout which, with the reception of this event is reset? Should that be left to application level logic?
+            // Should we merely store the instant at which the latest heartbeat was received, and let the user query it from the actor handle?
         }
     }
 }
